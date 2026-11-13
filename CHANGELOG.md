@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4.0 (in testing)
+
+- Rotation now matches the PlanAstro plan: NINA stores the frame rotation as 360 − position angle, so 35° was showing as 325°. The plugin now lets NINA apply the position angle itself, the same way NINA does for its own targets.
+- Mosaic overlap fixed: NINA keeps overlap as a fraction (0.15 = 15%), so the earlier value of 15 meant 1500%, which threw the mosaic panel coordinates far off. The overlap box also refreshes to show the new value.
+- The sky image loads once instead of twice: the rig, panels and overlap are set before NINA loads the image.
+- The field of view widens when needed so the whole mosaic fits in the sky image (it is never narrowed).
+- After loading, the plugin checks panels, overlap and rotation against the plan and re-applies them if NINA changed them.
+
 ## 0.1.3.0 (in testing)
 
 - Mosaic panels and rotation now stick: the plugin waits for the sky image to finish loading (NINA resets the frame to 1×1 and 0° when it does), applies them, checks they held and re-applies if not.

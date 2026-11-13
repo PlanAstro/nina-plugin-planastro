@@ -202,19 +202,21 @@ namespace PlanAstro.NINA {
                     var coords = new Coordinates(Angle.ByDegree(target.Ra), Angle.ByDegree(target.Dec), Epoch.J2000);
                     var dso = new DeepSkyObject(target.Name ?? "PlanAstro target", coords,
                         profile.ApplicationSettings.SkyAtlasImageRepository, profile.AstrometrySettings.Horizon);
-                    // Rotation: NINA 3 carries the position angle on the target. Set by name so a NINA build
-                    // without this property still loads the coordinates; checked against a plate solve in testing.
+                    // Rotation: NINA 3 carries the position angle on the target and applies it after loading the image.
                     TrySet(dso, "RotationPositionAngle", target.Rotation);
 
                     application.ChangeTab(ApplicationTab.FRAMINGASSISTANT);
-                    await framing.SetCoordinates(dso);
                     LogFramingPropertiesOnce();
 
-                    // By default the frame uses the rig the target was planned with in PlanAstro, so NINA shows exactly
-                    // what was framed. With "Use NINA's equipment" chosen, PlanAstro's rig only fills in when NINA
-                    // has no focal length at all (otherwise NINA can't load the sky image).
+                    // Everything is set BEFORE SetCoordinates, because SetCoordinates loads the sky image itself and
+                    // then sets the rotation from dso.RotationPositionAngle (NINA 3.2 FramingAssistantVM).
+                    // Loading a second time is what reset the frame in 0.1.2/0.1.3.
+
+                    // Rig: by default the one the target was planned with in PlanAstro. With the switch off, PlanAstro's
+                    // rig only fills in when NINA has no focal length at all (otherwise NINA can't load the sky image).
                     var rig = target.Rig;
-                    var usePlanAstroRig = settings.UsePlanAstroRig || GetDouble(framing, "FocalLength") <= 0;
+                    var focal = GetDouble(framing, "FocalLength");
+                    var usePlanAstroRig = settings.UsePlanAstroRig || double.IsNaN(focal) || focal <= 0;
                     if (rig != null && rig.FocalLengthMm > 0 && usePlanAstroRig) {
                         TrySet(framing, "FocalLength", rig.FocalLengthMm);
                         if (rig.PixelSizeUm > 0) TrySet(framing, "CameraPixelSize", rig.PixelSizeUm);
@@ -222,22 +224,23 @@ namespace PlanAstro.NINA {
                         if (rig.HeightPx > 0) TrySet(framing, "CameraHeight", rig.HeightPx);
                         Log.Info($"Used PlanAstro rig for framing: {rig.FocalLengthMm} mm, {rig.PixelSizeUm} µm, {rig.WidthPx}×{rig.HeightPx}");
                     }
-
-                    if (GetDouble(framing, "FocalLength") > 0) {
-                        await RunCommand(framing, "LoadImageCommand");
-                    } else {
+                    focal = GetDouble(framing, "FocalLength");
+                    if (double.IsNaN(focal) || focal <= 0) {
                         Notification.ShowWarning("PlanAstro: set your telescope's focal length in NINA (Options > Equipment > Telescope) or in PlanAstro's rig, then press Load Image.");
                     }
 
-                    // Mosaic and rotation apply to the framing rectangle. NINA rebuilds the rectangle (1x1, 0°) when the
-                    // sky image finishes loading, so wait for the image, apply, then check the values held and re-apply.
-                    await WaitForFramingImage();
-                    for (var attempt = 1; attempt <= 4; attempt++) {
-                        ApplyMosaicAndRotation(target);
-                        await Task.Delay(TimeSpan.FromMilliseconds(1500));
-                        if (FramingMatches(target)) { Log.Info($"Mosaic and rotation applied (attempt {attempt})"); break; }
-                        Log.Info($"Framing values were reset by NINA (attempt {attempt}); applying again");
-                        await WaitForFramingImage();
+                    ApplyMosaic(target);
+                    FitFieldOfView(target);
+
+                    await framing.SetCoordinates(dso);
+
+                    // NINA rebuilds the frame when the image arrives; confirm panels, overlap and rotation held.
+                    for (var attempt = 1; attempt <= 3; attempt++) {
+                        if (FramingMatches(target)) { Log.Info($"Mosaic and rotation confirmed (check {attempt})"); break; }
+                        Log.Info($"Framing differs from the PlanAstro plan (check {attempt}); applying again");
+                        ApplyMosaic(target);
+                        TrySetRotation(target.Rotation);
+                        await Task.Delay(TimeSpan.FromMilliseconds(1000));
                     }
                 });
                 if (!string.IsNullOrEmpty(target.Id) && IsPaired) {
@@ -252,47 +255,55 @@ namespace PlanAstro.NINA {
             }
         }
 
-        private void ApplyMosaicAndRotation(SentTarget target) {
-            if (target.IsMosaic) {
-                TrySet(framing, "HorizontalPanels", target.Mosaic.Columns);
-                TrySet(framing, "VerticalPanels", target.Mosaic.Rows);
-                SetOverlapPercent(target.Mosaic.OverlapPercent);
-            }
-            TrySetRotation(target.Rotation);
-        }
-
-        /// <summary>True when NINA still shows the panels and rotation the plugin set.</summary>
-        private bool FramingMatches(SentTarget target) {
+        private void ApplyMosaic(SentTarget target) {
             var cols = target.IsMosaic ? target.Mosaic.Columns : 1;
             var rows = target.IsMosaic ? target.Mosaic.Rows : 1;
-            var panelsOk = (int)GetDouble(framing, "HorizontalPanels") == cols && (int)GetDouble(framing, "VerticalPanels") == rows;
-            var rot = GetDouble(framing, "RectangleRotation");
-            var rotOk = Math.Abs(((rot - target.Rotation) % 360 + 540) % 360 - 180) < 0.6;
-            Log.Info($"Framing now: panels {GetDouble(framing, "HorizontalPanels")}x{GetDouble(framing, "VerticalPanels")}, rotation {rot}");
-            return panelsOk && rotOk;
+            TrySet(framing, "HorizontalPanels", cols);
+            TrySet(framing, "VerticalPanels", rows);
+            if (target.IsMosaic) SetOverlapPercent(target.Mosaic.OverlapPercent);
         }
 
         /// <summary>
-        /// Waits (up to 90 s) until the sky image has loaded: the framing rectangle exists and NINA's loading flag,
-        /// if this build has one, is off. Property names are looked up by reflection so other NINA builds still work.
+        /// Widens the sky image (Field of view) when the whole mosaic wouldn't fit in it, with room to rotate.
+        /// Only ever increases it, so a wider view the user chose is kept.
         /// </summary>
-        private async Task WaitForFramingImage() {
-            var started = DateTime.UtcNow;
-            while (DateTime.UtcNow - started < TimeSpan.FromSeconds(90)) {
-                var rect = framing?.GetType().GetProperty("Rectangle", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
-                var image = framing?.GetType().GetProperty("ImageParameter", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
-                var loading = false;
-                foreach (var flag in new[] { "IsLoading", "Loading", "IsBusy" }) {
-                    var v = framing?.GetType().GetProperty(flag, BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
-                    if (v is bool b && b) loading = true;
+        private void FitFieldOfView(SentTarget target) {
+            try {
+                var focal = GetDouble(framing, "FocalLength");
+                var pixel = GetDouble(framing, "CameraPixelSize");
+                var w = GetDouble(framing, "CameraWidth");
+                var h = GetDouble(framing, "CameraHeight");
+                if (focal <= 0 || pixel <= 0 || w <= 0 || h <= 0) return;
+                double Deg(double px) => px * pixel / 1000.0 / focal * 180.0 / Math.PI;
+                var cols = target.IsMosaic ? target.Mosaic.Columns : 1;
+                var rows = target.IsMosaic ? target.Mosaic.Rows : 1;
+                var overlap = target.IsMosaic ? target.Mosaic.OverlapPercent / 100.0 : 0;
+                var mosaicW = Deg(w) * (cols - (cols - 1) * overlap);
+                var mosaicH = Deg(h) * (rows - (rows - 1) * overlap);
+                var needed = Math.Ceiling(Math.Sqrt(mosaicW * mosaicW + mosaicH * mosaicH) * 1.15 * 2) / 2; // diagonal + margin, to 0.5°
+                needed = Math.Min(needed, 20);
+                var current = GetDouble(framing, "FieldOfView");
+                if (needed > current) {
+                    TrySet(framing, "FieldOfView", needed);
+                    Log.Info($"Field of view widened from {current}° to {needed}° so the {cols}×{rows} mosaic fits");
                 }
-                if (rect != null && image != null && !loading) {
-                    await Task.Delay(TimeSpan.FromMilliseconds(500));
-                    return;
-                }
-                await Task.Delay(TimeSpan.FromMilliseconds(500));
-            }
-            Log.Info("Sky image did not finish loading within 90 s; applying mosaic and rotation anyway");
+            } catch (Exception ex) { Log.Error("Could not fit the field of view", ex); }
+        }
+
+        /// <summary>True when NINA shows the panels, overlap and rotation from the PlanAstro plan.</summary>
+        private bool FramingMatches(SentTarget target) {
+            var cols = target.IsMosaic ? target.Mosaic.Columns : 1;
+            var rows = target.IsMosaic ? target.Mosaic.Rows : 1;
+            var h = GetDouble(framing, "HorizontalPanels");
+            var v = GetDouble(framing, "VerticalPanels");
+            var ovl = GetDouble(framing, "OverlapPercentage") * 100;
+            // NINA stores the rectangle rotation as 360 - position angle and shows 360 - that on screen.
+            var shown = ((360 - GetDouble(framing, "RectangleTotalRotation")) % 360 + 360) % 360;
+            Log.Info($"Framing now: panels {h}x{v}, overlap {ovl:0.#}%, rotation shown {shown:0.##}° (plan: {cols}x{rows}, {(target.IsMosaic ? target.Mosaic.OverlapPercent : 0)}%, {target.Rotation}°)");
+            var panelsOk = (int)h == cols && (int)v == rows;
+            var overlapOk = !target.IsMosaic || Math.Abs(ovl - target.Mosaic.OverlapPercent) < 0.5;
+            var rotOk = Math.Abs(((shown - target.Rotation) % 360 + 540) % 360 - 180) < 0.6;
+            return panelsOk && overlapOk && rotOk;
         }
 
         private static double GetDouble(object owner, string property) {
@@ -318,14 +329,10 @@ namespace PlanAstro.NINA {
         /// NINA builds, so the known names are tried in order; the result is written to NINA's log.
         /// </summary>
         private void TrySetRotation(double positionAngle) {
-            foreach (var name in new[] { "RectangleRotation", "Rotation", "RotationDeg", "PositionAngle" }) {
-                if (TrySetQuiet(framing, name, positionAngle)) { Log.Info($"Rotation set through {name}"); return; }
-            }
-            var rect = framing?.GetType().GetProperty("Rectangle", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
-            foreach (var name in new[] { "TotalRotation", "Rotation", "PositionAngle" }) {
-                if (TrySetQuiet(rect, name, positionAngle)) { Log.Info($"Rotation set through Rectangle.{name}"); return; }
-            }
-            Log.Info("No rotation property found; see the framing property list above in this log");
+            // Same as NINA's own SetCoordinates: RectangleRotation = 360 - position angle.
+            var value = ((360 - positionAngle) % 360 + 360) % 360;
+            if (TrySetQuiet(framing, "RectangleRotation", value)) { Log.Info($"Rotation set to PA {positionAngle}° (RectangleRotation {value})"); return; }
+            Log.Info("RectangleRotation not available in this NINA version");
         }
 
         /// <summary>
@@ -333,15 +340,12 @@ namespace PlanAstro.NINA {
         /// Set the unit to % first, then the value. OverlapPercentage is only a fallback for older builds.
         /// </summary>
         private void SetOverlapPercent(double percent) {
-            try {
-                var units = framing?.GetType().GetProperty("OverlapUnits", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing) as System.Collections.IEnumerable;
-                var percentUnit = units?.Cast<object>().Select(u => u?.ToString()).FirstOrDefault(u => u != null && u.Contains("%"));
-                if (percentUnit != null && TrySetQuiet(framing, "SelectedOverlapUnit", percentUnit) && TrySetQuiet(framing, "OverlapValue", percent)) {
-                    Log.Info($"Overlap set to {percent}% through OverlapValue");
-                    return;
-                }
-            } catch (Exception ex) { Log.Error("Could not set overlap unit", ex); }
-            TrySet(framing, "OverlapPercentage", percent);
+            // NINA keeps overlap as a fraction (0.15 = 15%); the % box multiplies by 100 for display.
+            TrySet(framing, "OverlapPercentage", percent / 100.0);
+            // The % box only re-reads its value when the unit changes, so switch to px and back to % to refresh it.
+            TrySetQuiet(framing, "SelectedOverlapUnit", "px");
+            TrySetQuiet(framing, "SelectedOverlapUnit", "%");
+            Log.Info($"Overlap set to {percent}%");
         }
 
         private static bool TrySetQuiet(object owner, string property, object value) {
