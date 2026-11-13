@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>PlanAstro.NINA</AssemblyName>
+    <RootNamespace>PlanAstro.NINA</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- NINA loads plugins from this folder; the post-build step copies the build here for local testing. -->
+    <NinaPluginFolder>$(LOCALAPPDATA)\NINA\Plugins\3.0.0\PlanAstro for NINA</NinaPluginFolder>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- NINA's own assemblies are already loaded by NINA, so they are referenced but never copied. -->
+    <PackageReference Include="NINA.Plugin" Version="3.1.2.9001" ExcludeAssets="runtime" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <Target Name="CopyToNinaPlugins" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT' And '$(CI)' != 'true'">
+    <MakeDir Directories="$(NinaPluginFolder)" />
+    <Copy SourceFiles="$(TargetDir)$(TargetName).dll;$(TargetDir)$(TargetName).pdb;$(TargetDir)System.Security.Cryptography.ProtectedData.dll" DestinationFolder="$(NinaPluginFolder)" SkipUnchangedFiles="true" ContinueOnError="true" />
+  </Target>
+
+</Project>
