@@ -65,6 +65,8 @@ namespace PlanAstro.NINA {
         [JsonPropertyName("focalLengthMm")] public double FocalLengthMm { get; set; }
         [JsonPropertyName("camera")] public string Camera { get; set; }
         [JsonPropertyName("pixelSizeUm")] public double PixelSizeUm { get; set; }
+        [JsonPropertyName("widthPx")] public int WidthPx { get; set; }
+        [JsonPropertyName("heightPx")] public int HeightPx { get; set; }
     }
 
     public class FilterPlan {

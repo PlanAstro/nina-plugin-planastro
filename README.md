@@ -27,7 +27,7 @@ You need Windows 10 or 11, N.I.N.A. 3.1 or later, the [.NET 8 SDK](https://dotne
 3. Build (Debug or Release). The build copies the plugin into `%LOCALAPPDATA%\NINA\Plugins\3.0.0\PlanAstro for NINA\`.
 4. Start N.I.N.A. and open *Plugins > Installed > PlanAstro for NINA*.
 5. Click **Add test target (M31)**, then **Open in Framing Assistant**. Check that:
-   - the Framing Assistant opens centred on M31;
+   - the Framing Assistant opens centred on M31 and loads the sky image by itself (if NINA has no telescope focal length set, the plugin uses the rig sent from PlanAstro);
    - the rotation reads 35°;
    - the mosaic shows 2 × 1 panels with 15% overlap.
 
@@ -55,7 +55,7 @@ Bump `AssemblyVersion` in `src/PlanAstro.NINA/Properties/AssemblyInfo.cs` before
   "mosaic": { "columns": 2, "rows": 1, "overlapPercent": 15 },
   "panels": [ { "name": "M31 Panel 1", "ra": 10.12, "dec": 41.27 } ],
   "fov": { "widthDeg": 2.80, "heightDeg": 1.87 },
-  "rig": { "telescope": "Evostar 80ED", "reducer": 0.8, "focalLengthMm": 480, "camera": "ASI2600MC Pro", "pixelSizeUm": 3.76 },
+  "rig": { "telescope": "Evostar 80ED", "reducer": 0.8, "focalLengthMm": 480, "camera": "ASI2600MC Pro", "pixelSizeUm": 3.76, "widthPx": 6248, "heightPx": 4176 },
   "filters": [ { "filter": "Ha", "count": 30, "seconds": 300 } ],
   "note": "Frame with the dust lane diagonal",
   "sentAt": "2026-11-12T23:40:00Z"

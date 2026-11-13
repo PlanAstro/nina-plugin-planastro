@@ -202,12 +202,32 @@ namespace PlanAstro.NINA {
 
                     application.ChangeTab(ApplicationTab.FRAMINGASSISTANT);
                     await framing.SetCoordinates(dso);
+                    LogFramingPropertiesOnce();
 
+                    // NINA can't load the sky image without a focal length. When NINA has none (no telescope set in
+                    // the profile), use the rig sent from PlanAstro. A focal length already set in NINA always wins.
+                    var rig = target.Rig;
+                    if (rig != null && rig.FocalLengthMm > 0 && GetDouble(framing, "FocalLength") <= 0) {
+                        TrySet(framing, "FocalLength", rig.FocalLengthMm);
+                        if (rig.PixelSizeUm > 0) TrySet(framing, "CameraPixelSize", rig.PixelSizeUm);
+                        if (rig.WidthPx > 0) TrySet(framing, "CameraWidth", rig.WidthPx);
+                        if (rig.HeightPx > 0) TrySet(framing, "CameraHeight", rig.HeightPx);
+                        Log.Info($"Used PlanAstro rig for framing: {rig.FocalLengthMm} mm, {rig.PixelSizeUm} µm, {rig.WidthPx}×{rig.HeightPx}");
+                    }
+
+                    if (GetDouble(framing, "FocalLength") > 0) {
+                        await RunCommand(framing, "LoadImageCommand");
+                    } else {
+                        Notification.ShowWarning("PlanAstro: set your telescope's focal length in NINA (Options > Equipment > Telescope) or in PlanAstro's rig, then press Load Image.");
+                    }
+
+                    // Mosaic and rotation apply to the framing rectangle, which exists once the image has loaded.
                     if (target.IsMosaic) {
                         TrySet(framing, "HorizontalPanels", target.Mosaic.Columns);
                         TrySet(framing, "VerticalPanels", target.Mosaic.Rows);
                         TrySet(framing, "OverlapPercentage", target.Mosaic.OverlapPercent);
                     }
+                    TrySetRotation(target.Rotation);
                 });
                 if (!string.IsNullOrEmpty(target.Id) && IsPaired) {
                     try { await client.Ack(target.Id, "imported", null, stop.Token); } catch (Exception ex) { Log.Error("Import acknowledgement failed", ex); }
@@ -219,6 +239,63 @@ namespace PlanAstro.NINA {
                     try { await client.Ack(target.Id, "failed", ex.Message, stop.Token); } catch { }
                 }
             }
+        }
+
+        private static double GetDouble(object owner, string property) {
+            try {
+                var v = owner?.GetType().GetProperty(property, BindingFlags.Public | BindingFlags.Instance)?.GetValue(owner);
+                return v == null ? 0 : Convert.ToDouble(v);
+            } catch { return 0; }
+        }
+
+        /// <summary>Runs one of the Framing Assistant's commands (for example Load Image) and waits for it when it is asynchronous.</summary>
+        private static async Task RunCommand(object owner, string commandName) {
+            var cmd = owner?.GetType().GetProperty(commandName, BindingFlags.Public | BindingFlags.Instance)?.GetValue(owner);
+            if (cmd == null) { Log.Info($"{commandName} not available in this NINA version"); return; }
+            try {
+                var executeAsync = cmd.GetType().GetMethod("ExecuteAsync", new[] { typeof(object) });
+                if (executeAsync != null && executeAsync.Invoke(cmd, new object[] { null }) is Task task) { await task; return; }
+                if (cmd is ICommand c && c.CanExecute(null)) c.Execute(null);
+            } catch (Exception ex) { Log.Error($"{commandName} failed", ex); }
+        }
+
+        /// <summary>
+        /// Rotation lives on the framing rectangle in NINA's Framing Assistant. Its exact property name differs between
+        /// NINA builds, so the known names are tried in order; the result is written to NINA's log.
+        /// </summary>
+        private void TrySetRotation(double positionAngle) {
+            foreach (var name in new[] { "Rotation", "RotationDeg", "PositionAngle" }) {
+                if (TrySetQuiet(framing, name, positionAngle)) { Log.Info($"Rotation set through {name}"); return; }
+            }
+            var rect = framing?.GetType().GetProperty("Rectangle", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
+            foreach (var name in new[] { "TotalRotation", "Rotation", "PositionAngle" }) {
+                if (TrySetQuiet(rect, name, positionAngle)) { Log.Info($"Rotation set through Rectangle.{name}"); return; }
+            }
+            Log.Info("No rotation property found; see the framing property list above in this log");
+        }
+
+        private static bool TrySetQuiet(object owner, string property, object value) {
+            var p = owner?.GetType().GetProperty(property, BindingFlags.Public | BindingFlags.Instance);
+            if (p == null || !p.CanWrite) return false;
+            try { p.SetValue(owner, Convert.ChangeType(value, p.PropertyType)); return true; } catch { return false; }
+        }
+
+        private bool loggedFraming;
+        /// <summary>Writes the Framing Assistant's settable properties to NINA's log once, so the next version can target them exactly.</summary>
+        private void LogFramingPropertiesOnce() {
+            if (loggedFraming || framing == null) return;
+            loggedFraming = true;
+            try {
+                var names = framing.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(p => p.CanWrite).Select(p => $"{p.Name}:{p.PropertyType.Name}");
+                Log.Info("Framing properties: " + string.Join(", ", names));
+                var rect = framing.GetType().GetProperty("Rectangle", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
+                if (rect != null) {
+                    var rnames = rect.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                        .Where(p => p.CanWrite).Select(p => $"{p.Name}:{p.PropertyType.Name}");
+                    Log.Info("Framing rectangle properties: " + string.Join(", ", rnames));
+                }
+            } catch (Exception ex) { Log.Error("Could not list framing properties", ex); }
         }
 
         private static void TrySet(object owner, string property, object value) {
@@ -242,7 +319,7 @@ namespace PlanAstro.NINA {
                 Name = "M31 Andromeda Galaxy (test)",
                 Ra = 10.6847, Dec = 41.2690, Rotation = 35,
                 Mosaic = new Mosaic { Columns = 2, Rows = 1, OverlapPercent = 15 },
-                Rig = new Rig { Telescope = "Test refractor", FocalLengthMm = 480, Camera = "Test camera" },
+                Rig = new Rig { Telescope = "Evostar 80ED + 0.8× reducer (test)", Reducer = 0.8, FocalLengthMm = 480, Camera = "ASI2600MC Pro (test)", PixelSizeUm = 3.76, WidthPx = 6248, HeightPx = 4176 },
                 Note = "Local test target; not from PlanAstro",
                 SentAt = DateTimeOffset.Now
             };
