@@ -53,9 +53,9 @@
                 <CheckBox Grid.Row="2" Grid.Column="1" Margin="0,4" VerticalAlignment="Center"
                           Content="Open it in the Framing Assistant" IsChecked="{Binding OpenNewArrivals}" />
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,4" VerticalAlignment="Center" Text="Frame with" />
+                <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,4,8,4" VerticalAlignment="Center" TextWrapping="Wrap" Text="Frame with PlanAstro My Astro Rig" />
                 <CheckBox Grid.Row="3" Grid.Column="1" Margin="0,4" VerticalAlignment="Center"
-                          Content="The rig the target was planned with in PlanAstro (off: NINA's telescope and camera)"
+                          Content="On: the rig the target was planned with in PlanAstro. Off: NINA's own telescope and camera."
                           IsChecked="{Binding UsePlanAstroRig}" />
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,4" VerticalAlignment="Center" Text="PlanAstro address" />

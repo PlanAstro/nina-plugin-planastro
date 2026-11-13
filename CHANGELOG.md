@@ -1,8 +1,12 @@
 # Changelog
 
+## 0.1.3.0 (in testing)
+
+- The "Frame with" setting is now labelled "Frame with PlanAstro My Astro Rig".
+
 ## 0.1.2.0 (in testing)
 
-- Frames with the rig the target was planned with in PlanAstro by default, so NINA shows exactly what was framed. A new setting, "Frame with", switches to NINA's own telescope and camera.
+- Frames with the rig the target was planned with in PlanAstro by default, so NINA shows exactly what was framed. A setting switches to NINA's own telescope and camera.
 - Mosaic overlap now applies correctly (sets NINA's overlap unit to % and its value), instead of staying at NINA's 20% default.
 - Rotation is set through the Framing Assistant's rotation slider (RectangleRotation).
 
