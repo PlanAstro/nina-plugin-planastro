@@ -229,13 +229,16 @@ namespace PlanAstro.NINA {
                         Notification.ShowWarning("PlanAstro: set your telescope's focal length in NINA (Options > Equipment > Telescope) or in PlanAstro's rig, then press Load Image.");
                     }
 
-                    // Mosaic and rotation apply to the framing rectangle, which exists once the image has loaded.
-                    if (target.IsMosaic) {
-                        TrySet(framing, "HorizontalPanels", target.Mosaic.Columns);
-                        TrySet(framing, "VerticalPanels", target.Mosaic.Rows);
-                        SetOverlapPercent(target.Mosaic.OverlapPercent);
+                    // Mosaic and rotation apply to the framing rectangle. NINA rebuilds the rectangle (1x1, 0°) when the
+                    // sky image finishes loading, so wait for the image, apply, then check the values held and re-apply.
+                    await WaitForFramingImage();
+                    for (var attempt = 1; attempt <= 4; attempt++) {
+                        ApplyMosaicAndRotation(target);
+                        await Task.Delay(TimeSpan.FromMilliseconds(1500));
+                        if (FramingMatches(target)) { Log.Info($"Mosaic and rotation applied (attempt {attempt})"); break; }
+                        Log.Info($"Framing values were reset by NINA (attempt {attempt}); applying again");
+                        await WaitForFramingImage();
                     }
-                    TrySetRotation(target.Rotation);
                 });
                 if (!string.IsNullOrEmpty(target.Id) && IsPaired) {
                     try { await client.Ack(target.Id, "imported", null, stop.Token); } catch (Exception ex) { Log.Error("Import acknowledgement failed", ex); }
@@ -247,6 +250,49 @@ namespace PlanAstro.NINA {
                     try { await client.Ack(target.Id, "failed", ex.Message, stop.Token); } catch { }
                 }
             }
+        }
+
+        private void ApplyMosaicAndRotation(SentTarget target) {
+            if (target.IsMosaic) {
+                TrySet(framing, "HorizontalPanels", target.Mosaic.Columns);
+                TrySet(framing, "VerticalPanels", target.Mosaic.Rows);
+                SetOverlapPercent(target.Mosaic.OverlapPercent);
+            }
+            TrySetRotation(target.Rotation);
+        }
+
+        /// <summary>True when NINA still shows the panels and rotation the plugin set.</summary>
+        private bool FramingMatches(SentTarget target) {
+            var cols = target.IsMosaic ? target.Mosaic.Columns : 1;
+            var rows = target.IsMosaic ? target.Mosaic.Rows : 1;
+            var panelsOk = (int)GetDouble(framing, "HorizontalPanels") == cols && (int)GetDouble(framing, "VerticalPanels") == rows;
+            var rot = GetDouble(framing, "RectangleRotation");
+            var rotOk = Math.Abs(((rot - target.Rotation) % 360 + 540) % 360 - 180) < 0.6;
+            Log.Info($"Framing now: panels {GetDouble(framing, "HorizontalPanels")}x{GetDouble(framing, "VerticalPanels")}, rotation {rot}");
+            return panelsOk && rotOk;
+        }
+
+        /// <summary>
+        /// Waits (up to 90 s) until the sky image has loaded: the framing rectangle exists and NINA's loading flag,
+        /// if this build has one, is off. Property names are looked up by reflection so other NINA builds still work.
+        /// </summary>
+        private async Task WaitForFramingImage() {
+            var started = DateTime.UtcNow;
+            while (DateTime.UtcNow - started < TimeSpan.FromSeconds(90)) {
+                var rect = framing?.GetType().GetProperty("Rectangle", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
+                var image = framing?.GetType().GetProperty("ImageParameter", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
+                var loading = false;
+                foreach (var flag in new[] { "IsLoading", "Loading", "IsBusy" }) {
+                    var v = framing?.GetType().GetProperty(flag, BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
+                    if (v is bool b && b) loading = true;
+                }
+                if (rect != null && image != null && !loading) {
+                    await Task.Delay(TimeSpan.FromMilliseconds(500));
+                    return;
+                }
+                await Task.Delay(TimeSpan.FromMilliseconds(500));
+            }
+            Log.Info("Sky image did not finish loading within 90 s; applying mosaic and rotation anyway");
         }
 
         private static double GetDouble(object owner, string property) {

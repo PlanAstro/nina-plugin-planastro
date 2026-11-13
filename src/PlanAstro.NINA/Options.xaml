@@ -32,7 +32,7 @@
             <TextBlock Margin="0,18,0,6" FontSize="16" FontWeight="SemiBold" Text="Settings" />
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="200" />
+                    <ColumnDefinition Width="360" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -49,13 +49,15 @@
                 <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4" VerticalAlignment="Center" Text="Check every (seconds)" />
                 <TextBox Grid.Row="1" Grid.Column="1" Width="80" Margin="0,4" HorizontalAlignment="Left" Text="{Binding PollSeconds}" />
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,4" VerticalAlignment="Center" Text="When a target arrives" />
-                <CheckBox Grid.Row="2" Grid.Column="1" Margin="0,4" VerticalAlignment="Center"
-                          Content="Open it in the Framing Assistant" IsChecked="{Binding OpenNewArrivals}" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,4,12,4" VerticalAlignment="Center" TextWrapping="Wrap"
+                           Text="Open targets in the Framing Assistant when they arrive" />
+                <CheckBox Grid.Row="2" Grid.Column="1" Margin="0,4" VerticalAlignment="Center" HorizontalAlignment="Left"
+                          ToolTip="Off: new targets wait in the PlanAstro inbox below" IsChecked="{Binding OpenNewArrivals}" />
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,4,8,4" VerticalAlignment="Center" TextWrapping="Wrap" Text="Frame with PlanAstro My Astro Rig" />
-                <CheckBox Grid.Row="3" Grid.Column="1" Margin="0,4" VerticalAlignment="Center"
-                          Content="On: the rig the target was planned with in PlanAstro. Off: NINA's own telescope and camera."
+                <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,4,12,4" VerticalAlignment="Center" TextWrapping="Wrap"
+                           Text="Frame with PlanAstro My Astro Rig" />
+                <CheckBox Grid.Row="3" Grid.Column="1" Margin="0,4" VerticalAlignment="Center" HorizontalAlignment="Left"
+                          ToolTip="Off: frame with NINA's own telescope and camera"
                           IsChecked="{Binding UsePlanAstroRig}" />
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,4" VerticalAlignment="Center" Text="PlanAstro address" />

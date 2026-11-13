@@ -2,7 +2,8 @@
 
 ## 0.1.3.0 (in testing)
 
-- The "Frame with" setting is now labelled "Frame with PlanAstro My Astro Rig".
+- Mosaic panels and rotation now stick: the plugin waits for the sky image to finish loading (NINA resets the frame to 1×1 and 0° when it does), applies them, checks they held and re-applies if not.
+- Settings read as full sentences: "Open targets in the Framing Assistant when they arrive" and "Frame with PlanAstro My Astro Rig". (NINA shows checkboxes as ON/OFF switches without their text, so the label carries the meaning.)
 
 ## 0.1.2.0 (in testing)
 
