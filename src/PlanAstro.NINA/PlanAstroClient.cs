@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace PlanAstro.NINA {
 
     /// <summary>Talks to PlanAstro's NINA endpoints. Outgoing HTTPS only; nothing listens on this PC.</summary>
-    public class PlanAstroClient {
+    internal class PlanAstroClient {
         private static readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(20) };
 
         private readonly Func<string> baseUrl;
