@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6.0 (in testing)
+
+- Uses the sky image width from PlanAstro's Survey Zoom (`surveyFovDeg`) for NINA's Field of view, widened only if the mosaic wouldn't fit.
+
 ## 0.1.5.0 (in testing)
 
 - Rotation now turns the same way as in PlanAstro. PlanAstro's Rotate slider turns the frame clockwise and NINA's turns it counterclockwise, so the plugin opens PlanAstro's angle in NINA as 360° − angle (35° in PlanAstro shows as 325° in NINA, and the frame points the same way in both).

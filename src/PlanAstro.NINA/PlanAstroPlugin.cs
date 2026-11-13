@@ -283,7 +283,12 @@ namespace PlanAstro.NINA {
                 var needed = Math.Ceiling(Math.Sqrt(mosaicW * mosaicW + mosaicH * mosaicH) * 1.15 * 2) / 2; // diagonal + margin, to 0.5°
                 needed = Math.Min(needed, 20);
                 var current = GetDouble(framing, "FieldOfView");
-                if (needed > current) {
+                if (target.SurveyFovDeg is double survey && survey > 0) {
+                    // Match the sky image the user framed on in PlanAstro, but never so narrow that the mosaic is cut off.
+                    var fov = Math.Round(Math.Min(Math.Max(survey, needed), 20), 2);
+                    TrySet(framing, "FieldOfView", fov);
+                    Log.Info($"Field of view set to {fov}° (PlanAstro Survey Zoom {survey}°, mosaic needs {needed}°)");
+                } else if (needed > current) {
                     TrySet(framing, "FieldOfView", needed);
                     Log.Info($"Field of view widened from {current}° to {needed}° so the {cols}×{rows} mosaic fits");
                 }

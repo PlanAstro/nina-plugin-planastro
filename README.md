@@ -55,6 +55,7 @@ Bump `AssemblyVersion` in `src/PlanAstro.NINA/Properties/AssemblyInfo.cs` before
   "mosaic": { "columns": 2, "rows": 1, "overlapPercent": 15 },
   "panels": [ { "name": "M31 Panel 1", "ra": 10.12, "dec": 41.27 } ],
   "fov": { "widthDeg": 2.80, "heightDeg": 1.87 },
+  "surveyFovDeg": 3.41,
   "rig": { "telescope": "Evostar 80ED", "reducer": 0.8, "focalLengthMm": 480, "camera": "ASI2600MC Pro", "pixelSizeUm": 3.76, "widthPx": 6248, "heightPx": 4176 },
   "filters": [ { "filter": "Ha", "count": 30, "seconds": 300 } ],
   "note": "Frame with the dust lane diagonal",
@@ -62,7 +63,7 @@ Bump `AssemblyVersion` in `src/PlanAstro.NINA/Properties/AssemblyInfo.cs` before
 }
 ```
 
-Coordinates are J2000 degrees; rotation is the angle from PlanAstro's Framing Assistant Rotate slider in degrees (0 = camera long side horizontal, increasing clockwise on screen with north up). NINA turns the other way, so the plugin opens it in NINA as 360 − rotation (35° in PlanAstro shows as 325° in NINA).
+Coordinates are J2000 degrees and are the centre of the frame as composed (after any Shift X/Y), not the catalog position; `surveyFovDeg` (optional) is the sky image width from Survey Zoom; rotation is the angle from PlanAstro's Framing Assistant Rotate slider in degrees (0 = camera long side horizontal, increasing clockwise on screen with north up). NINA turns the other way, so the plugin opens it in NINA as 360 − rotation (35° in PlanAstro shows as 325° in NINA).
 
 ## Licence
 

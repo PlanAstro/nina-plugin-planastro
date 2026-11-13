@@ -23,6 +23,8 @@ namespace PlanAstro.NINA {
         [JsonPropertyName("mosaic")] public Mosaic Mosaic { get; set; }
         [JsonPropertyName("panels")] public List<Panel> Panels { get; set; }
         [JsonPropertyName("fov")] public FieldOfView Fov { get; set; }
+        /// <summary>Optional: the sky image width shown in PlanAstro (Survey Zoom), in degrees. NINA's Field of view uses it, widened if the mosaic wouldn't fit.</summary>
+        [JsonPropertyName("surveyFovDeg")] public double? SurveyFovDeg { get; set; }
         [JsonPropertyName("rig")] public Rig Rig { get; set; }
         [JsonPropertyName("filters")] public List<FilterPlan> Filters { get; set; }
         [JsonPropertyName("note")] public string Note { get; set; }
