@@ -203,7 +203,7 @@ namespace PlanAstro.NINA {
                     var dso = new DeepSkyObject(target.Name ?? "PlanAstro target", coords,
                         profile.ApplicationSettings.SkyAtlasImageRepository, profile.AstrometrySettings.Horizon);
                     // Rotation: NINA 3 carries the position angle on the target and applies it after loading the image.
-                    TrySet(dso, "RotationPositionAngle", target.Rotation);
+                    TrySet(dso, "RotationPositionAngle", NinaAngle(target.Rotation));
 
                     application.ChangeTab(ApplicationTab.FRAMINGASSISTANT);
                     LogFramingPropertiesOnce();
@@ -239,7 +239,7 @@ namespace PlanAstro.NINA {
                         if (FramingMatches(target)) { Log.Info($"Mosaic and rotation confirmed (check {attempt})"); break; }
                         Log.Info($"Framing differs from the PlanAstro plan (check {attempt}); applying again");
                         ApplyMosaic(target);
-                        TrySetRotation(target.Rotation);
+                        TrySetRotation(NinaAngle(target.Rotation));
                         await Task.Delay(TimeSpan.FromMilliseconds(1000));
                     }
                 });
@@ -299,10 +299,10 @@ namespace PlanAstro.NINA {
             var ovl = GetDouble(framing, "OverlapPercentage") * 100;
             // NINA stores the rectangle rotation as 360 - position angle and shows 360 - that on screen.
             var shown = ((360 - GetDouble(framing, "RectangleTotalRotation")) % 360 + 360) % 360;
-            Log.Info($"Framing now: panels {h}x{v}, overlap {ovl:0.#}%, rotation shown {shown:0.##}° (plan: {cols}x{rows}, {(target.IsMosaic ? target.Mosaic.OverlapPercent : 0)}%, {target.Rotation}°)");
+            Log.Info($"Framing now: panels {h}x{v}, overlap {ovl:0.#}%, rotation shown {shown:0.##}° (plan: {cols}x{rows}, {(target.IsMosaic ? target.Mosaic.OverlapPercent : 0)}%, PlanAstro {target.Rotation}° = NINA {NinaAngle(target.Rotation):0.##}°)");
             var panelsOk = (int)h == cols && (int)v == rows;
             var overlapOk = !target.IsMosaic || Math.Abs(ovl - target.Mosaic.OverlapPercent) < 0.5;
-            var rotOk = Math.Abs(((shown - target.Rotation) % 360 + 540) % 360 - 180) < 0.6;
+            var rotOk = Math.Abs(((shown - NinaAngle(target.Rotation)) % 360 + 540) % 360 - 180) < 0.6;
             return panelsOk && overlapOk && rotOk;
         }
 
@@ -328,6 +328,13 @@ namespace PlanAstro.NINA {
         /// Rotation lives on the framing rectangle in NINA's Framing Assistant. Its exact property name differs between
         /// NINA builds, so the known names are tried in order; the result is written to NINA's log.
         /// </summary>
+        /// <summary>
+        /// PlanAstro's Rotate slider turns the frame clockwise on screen (north up); NINA's rotation turns it
+        /// counterclockwise. Both start at 0° with the camera's long side horizontal, so NINA's angle is 360 - PlanAstro's.
+        /// Example: M31 framed along its long axis is 38° in PlanAstro and 322° in NINA.
+        /// </summary>
+        internal static double NinaAngle(double planAstroRotation) => ((360 - planAstroRotation) % 360 + 360) % 360;
+
         private void TrySetRotation(double positionAngle) {
             // Same as NINA's own SetCoordinates: RectangleRotation = 360 - position angle.
             var value = ((360 - positionAngle) % 360 + 360) % 360;

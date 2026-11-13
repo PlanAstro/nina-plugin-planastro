@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5.0 (in testing)
+
+- Rotation now turns the same way as in PlanAstro. PlanAstro's Rotate slider turns the frame clockwise and NINA's turns it counterclockwise, so the plugin opens PlanAstro's angle in NINA as 360° − angle (35° in PlanAstro shows as 325° in NINA, and the frame points the same way in both).
+- The test target (M31, 35°) now frames along the galaxy's long axis, as it does in PlanAstro.
+
 ## 0.1.4.0 (in testing)
 
 - Rotation now matches the PlanAstro plan: NINA stores the frame rotation as 360 − position angle, so 35° was showing as 325°. The plugin now lets NINA apply the position angle itself, the same way NINA does for its own targets.

@@ -17,6 +17,7 @@ namespace PlanAstro.NINA {
         [JsonPropertyName("dec")] public double Dec { get; set; }
 
         /// <summary>Position angle in degrees, east of north.</summary>
+        /// <summary>PlanAstro Framing Assistant rotation in degrees: 0 = camera long side horizontal, increasing clockwise on screen with north up.</summary>
         [JsonPropertyName("rotation")] public double Rotation { get; set; }
 
         [JsonPropertyName("mosaic")] public Mosaic Mosaic { get; set; }
