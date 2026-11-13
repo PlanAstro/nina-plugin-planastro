@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2.0 (in testing)
+
+- Frames with the rig the target was planned with in PlanAstro by default, so NINA shows exactly what was framed. A new setting, "Frame with", switches to NINA's own telescope and camera.
+- Mosaic overlap now applies correctly (sets NINA's overlap unit to % and its value), instead of staying at NINA's 20% default.
+- Rotation is set through the Framing Assistant's rotation slider (RectangleRotation).
+
 ## 0.1.1.0 (in testing)
 
 - When NINA has no telescope focal length set, the Framing Assistant uses the rig sent from PlanAstro (focal length, pixel size, sensor size), so the sky image loads instead of showing an error.

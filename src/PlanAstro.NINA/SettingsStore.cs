@@ -26,6 +26,7 @@ namespace PlanAstro.NINA {
         public string EncryptedToken { get; set; }
         public int PollSeconds { get; set; } = 60;
         public ArrivalAction OnArrival { get; set; } = ArrivalAction.OpenInFraming;
+        public bool UsePlanAstroRig { get; set; } = true;
         public List<SentTarget> Inbox { get; set; } = new();
     }
 

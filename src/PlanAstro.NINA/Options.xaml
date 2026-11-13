@@ -40,6 +40,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,4" VerticalAlignment="Center" Text="This PC's name in PlanAstro" />
@@ -52,8 +53,13 @@
                 <CheckBox Grid.Row="2" Grid.Column="1" Margin="0,4" VerticalAlignment="Center"
                           Content="Open it in the Framing Assistant" IsChecked="{Binding OpenNewArrivals}" />
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,4" VerticalAlignment="Center" Text="PlanAstro address" />
-                <TextBox Grid.Row="3" Grid.Column="1" Width="320" Margin="0,4" HorizontalAlignment="Left"
+                <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,4" VerticalAlignment="Center" Text="Frame with" />
+                <CheckBox Grid.Row="3" Grid.Column="1" Margin="0,4" VerticalAlignment="Center"
+                          Content="The rig the target was planned with in PlanAstro (off: NINA's telescope and camera)"
+                          IsChecked="{Binding UsePlanAstroRig}" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,4" VerticalAlignment="Center" Text="PlanAstro address" />
+                <TextBox Grid.Row="4" Grid.Column="1" Width="320" Margin="0,4" HorizontalAlignment="Left"
                          Text="{Binding BaseUrl}" ToolTip="Leave as https://planastro.com unless testing a preview build" />
             </Grid>
 

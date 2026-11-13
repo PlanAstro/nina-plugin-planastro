@@ -12,8 +12,8 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCopyright("Copyright © 2026 PlanAstro")]
 
 // Major.Minor.Patch.Build
-[assembly: AssemblyVersion("0.1.1.0")]
-[assembly: AssemblyFileVersion("0.1.1.0")]
+[assembly: AssemblyVersion("0.1.2.0")]
+[assembly: AssemblyFileVersion("0.1.2.0")]
 
 [assembly: AssemblyMetadata("MinimumApplicationVersion", "3.1.2.9001")]
 [assembly: AssemblyMetadata("License", "MIT")]

@@ -88,6 +88,12 @@ namespace PlanAstro.NINA {
             set { settings.PollSeconds = Math.Clamp(value, 30, 600); SettingsStore.Save(settings); Raise(); }
         }
 
+        /// <summary>On: frame with the rig the target was planned with in PlanAstro. Off: use NINA's own telescope and camera.</summary>
+        public bool UsePlanAstroRig {
+            get => settings.UsePlanAstroRig;
+            set { settings.UsePlanAstroRig = value; SettingsStore.Save(settings); Raise(); }
+        }
+
         public bool OpenNewArrivals {
             get => settings.OnArrival == ArrivalAction.OpenInFraming;
             set { settings.OnArrival = value ? ArrivalAction.OpenInFraming : ArrivalAction.InboxOnly; SettingsStore.Save(settings); Raise(); }
@@ -204,10 +210,12 @@ namespace PlanAstro.NINA {
                     await framing.SetCoordinates(dso);
                     LogFramingPropertiesOnce();
 
-                    // NINA can't load the sky image without a focal length. When NINA has none (no telescope set in
-                    // the profile), use the rig sent from PlanAstro. A focal length already set in NINA always wins.
+                    // By default the frame uses the rig the target was planned with in PlanAstro, so NINA shows exactly
+                    // what was framed. With "Use NINA's equipment" chosen, PlanAstro's rig only fills in when NINA
+                    // has no focal length at all (otherwise NINA can't load the sky image).
                     var rig = target.Rig;
-                    if (rig != null && rig.FocalLengthMm > 0 && GetDouble(framing, "FocalLength") <= 0) {
+                    var usePlanAstroRig = settings.UsePlanAstroRig || GetDouble(framing, "FocalLength") <= 0;
+                    if (rig != null && rig.FocalLengthMm > 0 && usePlanAstroRig) {
                         TrySet(framing, "FocalLength", rig.FocalLengthMm);
                         if (rig.PixelSizeUm > 0) TrySet(framing, "CameraPixelSize", rig.PixelSizeUm);
                         if (rig.WidthPx > 0) TrySet(framing, "CameraWidth", rig.WidthPx);
@@ -225,7 +233,7 @@ namespace PlanAstro.NINA {
                     if (target.IsMosaic) {
                         TrySet(framing, "HorizontalPanels", target.Mosaic.Columns);
                         TrySet(framing, "VerticalPanels", target.Mosaic.Rows);
-                        TrySet(framing, "OverlapPercentage", target.Mosaic.OverlapPercent);
+                        SetOverlapPercent(target.Mosaic.OverlapPercent);
                     }
                     TrySetRotation(target.Rotation);
                 });
@@ -264,7 +272,7 @@ namespace PlanAstro.NINA {
         /// NINA builds, so the known names are tried in order; the result is written to NINA's log.
         /// </summary>
         private void TrySetRotation(double positionAngle) {
-            foreach (var name in new[] { "Rotation", "RotationDeg", "PositionAngle" }) {
+            foreach (var name in new[] { "RectangleRotation", "Rotation", "RotationDeg", "PositionAngle" }) {
                 if (TrySetQuiet(framing, name, positionAngle)) { Log.Info($"Rotation set through {name}"); return; }
             }
             var rect = framing?.GetType().GetProperty("Rectangle", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
@@ -272,6 +280,22 @@ namespace PlanAstro.NINA {
                 if (TrySetQuiet(rect, name, positionAngle)) { Log.Info($"Rotation set through Rectangle.{name}"); return; }
             }
             Log.Info("No rotation property found; see the framing property list above in this log");
+        }
+
+        /// <summary>
+        /// NINA's overlap box is a value plus a unit (% or pixels): SelectedOverlapUnit + OverlapValue.
+        /// Set the unit to % first, then the value. OverlapPercentage is only a fallback for older builds.
+        /// </summary>
+        private void SetOverlapPercent(double percent) {
+            try {
+                var units = framing?.GetType().GetProperty("OverlapUnits", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing) as System.Collections.IEnumerable;
+                var percentUnit = units?.Cast<object>().Select(u => u?.ToString()).FirstOrDefault(u => u != null && u.Contains("%"));
+                if (percentUnit != null && TrySetQuiet(framing, "SelectedOverlapUnit", percentUnit) && TrySetQuiet(framing, "OverlapValue", percent)) {
+                    Log.Info($"Overlap set to {percent}% through OverlapValue");
+                    return;
+                }
+            } catch (Exception ex) { Log.Error("Could not set overlap unit", ex); }
+            TrySet(framing, "OverlapPercentage", percent);
         }
 
         private static bool TrySetQuiet(object owner, string property, object value) {
