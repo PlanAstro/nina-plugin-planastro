@@ -17,8 +17,16 @@ namespace PlanAstro.NINA {
         [JsonPropertyName("dec")] public double Dec { get; set; }
 
         /// <summary>Position angle in degrees, east of north.</summary>
-        /// <summary>PlanAstro Framing Assistant rotation in degrees: 0 = camera long side horizontal, increasing clockwise on screen with north up.</summary>
+        /// <summary>
+        /// Rotation in degrees, 0 = camera long side horizontal with north up.
+        /// v2 (current PlanAstro): counterclockwise 0–360, the same numbers N.I.N.A. and plate solvers show.
+        /// v1 (older PlanAstro builds): clockwise; converted with 360 − rotation.
+        /// </summary>
         [JsonPropertyName("rotation")] public double Rotation { get; set; }
+
+        /// <summary>The rotation as N.I.N.A. counts it (counterclockwise, 0–360), for either payload version.</summary>
+        [JsonIgnore] public double NinaRotation =>
+            Version >= 2 ? ((Rotation % 360) + 360) % 360 : ((360 - Rotation) % 360 + 360) % 360;
 
         [JsonPropertyName("mosaic")] public Mosaic Mosaic { get; set; }
         [JsonPropertyName("panels")] public List<Panel> Panels { get; set; }
@@ -35,7 +43,7 @@ namespace PlanAstro.NINA {
         [JsonIgnore]
         public string Summary {
             get {
-                var parts = new List<string> { $"RA {Ra:0.000}°, Dec {Dec:+0.000;-0.000}°", $"rotation {Rotation:0.#}°" };
+                var parts = new List<string> { $"RA {Ra:0.000}°, Dec {Dec:+0.000;-0.000}°", $"rotation {NinaRotation:0.#}°" };
                 if (IsMosaic) parts.Add($"{Mosaic.Columns} × {Mosaic.Rows} mosaic, {Mosaic.OverlapPercent:0}% overlap");
                 if (Rig != null && Rig.FocalLengthMm > 0) parts.Add($"{Rig.FocalLengthMm:0} mm");
                 return string.Join(" · ", parts);

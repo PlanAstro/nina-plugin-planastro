@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.7.0 (in testing)
+
+- Rotation numbers now match between PlanAstro and NINA. PlanAstro's Rotate slider counts counterclockwise from 0 to 360 like NINA (payload `"v": 2`), so the plugin passes the angle straight through: 325° in PlanAstro is 325° in NINA.
+- Targets from older PlanAstro builds (`"v": 1`, clockwise) are still converted, so nothing breaks while both are in use.
+- The inbox shows rotation in NINA's numbers.
+
 ## 0.1.6.0 (2026-11-14)
 
 - Uses the sky image width from PlanAstro's Survey Zoom (`surveyFovDeg`) for NINA's Field of view, widened only if the mosaic wouldn't fit.
