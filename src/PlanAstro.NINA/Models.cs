@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace PlanAstro.NINA {
 
-    /// <summary>One framed target sent from PlanAstro (format version 1, see the spec).</summary>
+    /// <summary>One framed target sent from PlanAstro (format versions 1 and 2, see README).</summary>
     public class SentTarget {
         [JsonPropertyName("v")] public int Version { get; set; } = 1;
         [JsonPropertyName("id")] public string Id { get; set; }
@@ -16,7 +16,6 @@ namespace PlanAstro.NINA {
         /// <summary>J2000 declination in degrees.</summary>
         [JsonPropertyName("dec")] public double Dec { get; set; }
 
-        /// <summary>Position angle in degrees, east of north.</summary>
         /// <summary>
         /// Rotation in degrees, 0 = camera long side horizontal with north up.
         /// v2 (current PlanAstro): counterclockwise 0–360, the same numbers N.I.N.A. and plate solvers show.
@@ -90,12 +89,6 @@ namespace PlanAstro.NINA {
         [JsonPropertyName("overlapPercent")] public double OverlapPercent { get; set; } = 15;
     }
 
-    public class Panel {
-        [JsonPropertyName("name")] public string Name { get; set; }
-        [JsonPropertyName("ra")] public double Ra { get; set; }
-        [JsonPropertyName("dec")] public double Dec { get; set; }
-    }
-
     public class FieldOfView {
         [JsonPropertyName("widthDeg")] public double WidthDeg { get; set; }
         [JsonPropertyName("heightDeg")] public double HeightDeg { get; set; }
@@ -109,12 +102,6 @@ namespace PlanAstro.NINA {
         [JsonPropertyName("pixelSizeUm")] public double PixelSizeUm { get; set; }
         [JsonPropertyName("widthPx")] public int WidthPx { get; set; }
         [JsonPropertyName("heightPx")] public int HeightPx { get; set; }
-    }
-
-    public class FilterPlan {
-        [JsonPropertyName("filter")] public string Filter { get; set; }
-        [JsonPropertyName("count")] public int Count { get; set; }
-        [JsonPropertyName("seconds")] public double Seconds { get; set; }
     }
 
     internal class PairRequest {

@@ -207,11 +207,9 @@ namespace PlanAstro.NINA {
                     TrySet(dso, "RotationPositionAngle", target.NinaRotation);
 
                     application.ChangeTab(ApplicationTab.FRAMINGASSISTANT);
-                    LogFramingPropertiesOnce();
 
-                    // Everything is set BEFORE SetCoordinates, because SetCoordinates loads the sky image itself and
-                    // then sets the rotation from dso.RotationPositionAngle (NINA 3.2 FramingAssistantVM).
-                    // Loading a second time is what reset the frame in 0.1.2/0.1.3.
+                    // Rig, mosaic and field of view are set BEFORE SetCoordinates: SetCoordinates loads the sky image
+                    // itself and then applies dso.RotationPositionAngle, so a second image load would reset the frame.
 
                     // Rig: by default the one the target was planned with in PlanAstro. With the switch off, PlanAstro's
                     // rig only fills in when NINA has no focal length at all (otherwise NINA can't load the sky image).
@@ -319,32 +317,14 @@ namespace PlanAstro.NINA {
             } catch { return 0; }
         }
 
-        /// <summary>Runs one of the Framing Assistant's commands (for example Load Image) and waits for it when it is asynchronous.</summary>
-        private static async Task RunCommand(object owner, string commandName) {
-            var cmd = owner?.GetType().GetProperty(commandName, BindingFlags.Public | BindingFlags.Instance)?.GetValue(owner);
-            if (cmd == null) { Log.Info($"{commandName} not available in this NINA version"); return; }
-            try {
-                var executeAsync = cmd.GetType().GetMethod("ExecuteAsync", new[] { typeof(object) });
-                if (executeAsync != null && executeAsync.Invoke(cmd, new object[] { null }) is Task task) { await task; return; }
-                if (cmd is ICommand c && c.CanExecute(null)) c.Execute(null);
-            } catch (Exception ex) { Log.Error($"{commandName} failed", ex); }
-        }
-
-        /// <summary>
-        /// Rotation lives on the framing rectangle in NINA's Framing Assistant. Its exact property name differs between
-        /// NINA builds, so the known names are tried in order; the result is written to NINA's log.
-        /// </summary>
+        /// <summary>Re-applies the rotation the same way NINA's own SetCoordinates does (RectangleRotation = 360 − position angle).</summary>
         private void TrySetRotation(double positionAngle) {
-            // Same as NINA's own SetCoordinates: RectangleRotation = 360 - position angle.
             var value = ((360 - positionAngle) % 360 + 360) % 360;
             if (TrySetQuiet(framing, "RectangleRotation", value)) { Log.Info($"Rotation set to PA {positionAngle}° (RectangleRotation {value})"); return; }
             Log.Info("RectangleRotation not available in this NINA version");
         }
 
-        /// <summary>
-        /// NINA's overlap box is a value plus a unit (% or pixels): SelectedOverlapUnit + OverlapValue.
-        /// Set the unit to % first, then the value. OverlapPercentage is only a fallback for older builds.
-        /// </summary>
+        /// <summary>Sets the mosaic overlap in percent and shows it in NINA's overlap box.</summary>
         private void SetOverlapPercent(double percent) {
             // NINA keeps overlap as a fraction (0.15 = 15%); the % box multiplies by 100 for display.
             TrySet(framing, "OverlapPercentage", percent / 100.0);
@@ -360,24 +340,8 @@ namespace PlanAstro.NINA {
             try { p.SetValue(owner, Convert.ChangeType(value, p.PropertyType)); return true; } catch { return false; }
         }
 
-        private bool loggedFraming;
-        /// <summary>Writes the Framing Assistant's settable properties to NINA's log once, so the next version can target them exactly.</summary>
-        private void LogFramingPropertiesOnce() {
-            if (loggedFraming || framing == null) return;
-            loggedFraming = true;
-            try {
-                var names = framing.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(p => p.CanWrite).Select(p => $"{p.Name}:{p.PropertyType.Name}");
-                Log.Info("Framing properties: " + string.Join(", ", names));
-                var rect = framing.GetType().GetProperty("Rectangle", BindingFlags.Public | BindingFlags.Instance)?.GetValue(framing);
-                if (rect != null) {
-                    var rnames = rect.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                        .Where(p => p.CanWrite).Select(p => $"{p.Name}:{p.PropertyType.Name}");
-                    Log.Info("Framing rectangle properties: " + string.Join(", ", rnames));
-                }
-            } catch (Exception ex) { Log.Error("Could not list framing properties", ex); }
-        }
-
+        // NINA's IFramingAssistantVM interface doesn't expose the panel, overlap, rotation and camera properties, so they
+        // are set by name on the Framing Assistant. A property missing in some NINA build is logged and skipped.
         private static void TrySet(object owner, string property, object value) {
             var p = owner?.GetType().GetProperty(property, BindingFlags.Public | BindingFlags.Instance);
             if (p == null || !p.CanWrite) { Log.Info($"{owner?.GetType().Name}.{property} not available in this NINA version"); return; }
