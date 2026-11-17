@@ -1,6 +1,21 @@
 # Changelog
 
-## 0.1.7.0 (in testing)
+## 1.0.0.0 (2026-11-17)
+
+First public release, submitted to NINA's plugin list.
+
+- Everything from the 0.1.x test builds below (pairing, inbox, Framing Assistant handoff with rig, rotation, mosaic, overlap and field of view).
+- Removed the "Add test target (M31)" button used during development; targets now come only from PlanAstro.
+
+## 0.1.8.0
+
+- Fixes "The JSON value could not be converted … panels": PlanAstro sends `panels` as a count; the plugin now accepts a count or a list (it was never used — NINA computes the panels).
+- Each target is read on its own: one target in an unexpected shape no longer blocks the queue. It is reported back to PlanAstro as failed and NINA shows a notice.
+- Number fields are read tolerantly (numbers as text, decimals for pixel counts, missing values).
+- Inbox cards show the full plan: frame-centre RA/Dec (as NINA writes them), rotation, mosaic and overlap (or single frame), field of view, and the rig from My Astro Rig — telescope, reducer or Barlow, effective focal length, camera, pixel size and sensor size.
+- No longer sends a "delivered" acknowledgement, which PlanAstro doesn't accept (it marks targets delivered when the plugin fetches them). Targets are acknowledged as imported or failed after opening.
+
+## 0.1.7.0
 
 - Rotation numbers now match between PlanAstro and NINA. PlanAstro's Rotate slider counts counterclockwise from 0 to 360 like NINA (payload `"v": 2`), so the plugin passes the angle straight through: 325° in PlanAstro is 325° in NINA.
 - Targets from older PlanAstro builds (`"v": 1`, clockwise) are still converted, so nothing breaks while both are in use.

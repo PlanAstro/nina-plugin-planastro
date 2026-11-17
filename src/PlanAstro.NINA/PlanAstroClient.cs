@@ -3,6 +3,8 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -52,7 +54,46 @@ namespace PlanAstro.NINA {
             if (res.StatusCode == HttpStatusCode.Unauthorized || res.StatusCode == HttpStatusCode.Forbidden)
                 throw new NotPairedException();
             await EnsureOk(res);
-            return await res.Content.ReadFromJsonAsync<QueueResponse>(cancellationToken: ct) ?? new QueueResponse();
+            var result = new QueueResponse();
+            var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync(ct)); // not disposed: targets keep JsonElements (panels, filters)
+            if (!doc.RootElement.TryGetProperty("targets", out var targets) || targets.ValueKind != JsonValueKind.Array) return result;
+            // Read each target on its own, so one target in an unexpected shape never blocks the rest.
+            foreach (var el in targets.EnumerateArray()) {
+                var id = el.ValueKind == JsonValueKind.Object && el.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String ? idEl.GetString() : null;
+                try {
+                    var t = el.Deserialize<SentTarget>(Lenient);
+                    if (t != null) result.Targets.Add(t);
+                } catch (Exception ex) {
+                    Log.Error($"Could not read target {id ?? "(no id)"}", ex);
+                    if (!string.IsNullOrEmpty(id)) result.Rejected.Add((id, "Plugin could not read this target: " + ex.Message));
+                }
+            }
+            return result;
+        }
+
+        /// <summary>Tolerant reading: numbers may arrive as strings, null or with decimals.</summary>
+        internal static readonly JsonSerializerOptions Lenient = new() {
+            PropertyNameCaseInsensitive = true,
+            NumberHandling = JsonNumberHandling.AllowReadingFromString,
+            Converters = { new LenientDouble(), new LenientInt() }
+        };
+
+        private sealed class LenientDouble : JsonConverter<double> {
+            public override double Read(ref Utf8JsonReader r, Type t, JsonSerializerOptions o) => r.TokenType switch {
+                JsonTokenType.Number => r.GetDouble(),
+                JsonTokenType.String => double.TryParse(r.GetString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : 0,
+                _ => 0
+            };
+            public override void Write(Utf8JsonWriter w, double v, JsonSerializerOptions o) => w.WriteNumberValue(v);
+        }
+
+        private sealed class LenientInt : JsonConverter<int> {
+            public override int Read(ref Utf8JsonReader r, Type t, JsonSerializerOptions o) => r.TokenType switch {
+                JsonTokenType.Number => r.TryGetInt32(out var i) ? i : (int)Math.Round(r.GetDouble()),
+                JsonTokenType.String => double.TryParse(r.GetString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d) ? (int)Math.Round(d) : 0,
+                _ => 0
+            };
+            public override void Write(Utf8JsonWriter w, int v, JsonSerializerOptions o) => w.WriteNumberValue(v);
         }
 
         public async Task Ack(string id, string status, string reason, CancellationToken ct) {

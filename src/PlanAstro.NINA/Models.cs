@@ -29,12 +29,14 @@ namespace PlanAstro.NINA {
             Version >= 2 ? ((Rotation % 360) + 360) % 360 : ((360 - Rotation) % 360 + 360) % 360;
 
         [JsonPropertyName("mosaic")] public Mosaic Mosaic { get; set; }
-        [JsonPropertyName("panels")] public List<Panel> Panels { get; set; }
+        /// <summary>Panel count or panel list; informational only (NINA computes the panels), so any shape is accepted.</summary>
+        [JsonPropertyName("panels")] public System.Text.Json.JsonElement? Panels { get; set; }
         [JsonPropertyName("fov")] public FieldOfView Fov { get; set; }
         /// <summary>Optional: the sky image width shown in PlanAstro (Survey Zoom), in degrees. NINA's Field of view uses it, widened if the mosaic wouldn't fit.</summary>
         [JsonPropertyName("surveyFovDeg")] public double? SurveyFovDeg { get; set; }
         [JsonPropertyName("rig")] public Rig Rig { get; set; }
-        [JsonPropertyName("filters")] public List<FilterPlan> Filters { get; set; }
+        /// <summary>Optional filter plan; not used yet, so any shape is accepted.</summary>
+        [JsonPropertyName("filters")] public System.Text.Json.JsonElement? Filters { get; set; }
         [JsonPropertyName("note")] public string Note { get; set; }
         [JsonPropertyName("sentAt")] public DateTimeOffset SentAt { get; set; }
 
@@ -43,11 +45,40 @@ namespace PlanAstro.NINA {
         [JsonIgnore]
         public string Summary {
             get {
-                var parts = new List<string> { $"RA {Ra:0.000}°, Dec {Dec:+0.000;-0.000}°", $"rotation {NinaRotation:0.#}°" };
-                if (IsMosaic) parts.Add($"{Mosaic.Columns} × {Mosaic.Rows} mosaic, {Mosaic.OverlapPercent:0}% overlap");
-                if (Rig != null && Rig.FocalLengthMm > 0) parts.Add($"{Rig.FocalLengthMm:0} mm");
+                var parts = new List<string> { $"RA {Hms(Ra / 15)}, Dec {Dms(Dec)}", $"rotation {NinaRotation:0.#}°" };
+                parts.Add(IsMosaic ? $"{Mosaic.Columns} × {Mosaic.Rows} mosaic, {Mosaic.OverlapPercent:0}% overlap" : "single frame");
+                if (Fov != null && Fov.WidthDeg > 0) parts.Add($"field {Fov.WidthDeg:0.00}° × {Fov.HeightDeg:0.00}°");
                 return string.Join(" · ", parts);
             }
+        }
+
+        /// <summary>Telescope · reducer/Barlow · effective focal length · camera, as set in PlanAstro's My Astro Rig.</summary>
+        [JsonIgnore]
+        public string RigSummary {
+            get {
+                if (Rig == null) return "";
+                var parts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(Rig.Telescope)) parts.Add(Rig.Telescope.Trim());
+                if (Rig.Reducer > 0 && Math.Abs(Rig.Reducer - 1) > 0.001)
+                    parts.Add($"{Rig.Reducer:0.##}× {(Rig.Reducer < 1 ? "reducer" : "Barlow")}");
+                if (Rig.FocalLengthMm > 0) parts.Add($"{Rig.FocalLengthMm:0} mm");
+                var cam = string.IsNullOrWhiteSpace(Rig.Camera) ? "" : Rig.Camera.Trim();
+                var sensor = Rig.PixelSizeUm > 0 && Rig.WidthPx > 0 ? $"{Rig.PixelSizeUm:0.##} µm, {Rig.WidthPx}×{Rig.HeightPx}" : "";
+                if (cam.Length > 0 || sensor.Length > 0) parts.Add(sensor.Length > 0 ? (cam.Length > 0 ? $"{cam} ({sensor})" : $"camera {sensor}") : cam);
+                return string.Join(" · ", parts);
+            }
+        }
+
+        private static string Hms(double hours) {
+            hours = ((hours % 24) + 24) % 24;
+            var totalSec = (int)Math.Round(hours * 3600) % 86400;
+            return $"{totalSec / 3600:00}h {totalSec / 60 % 60:00}m {totalSec % 60:00}s";
+        }
+
+        private static string Dms(double deg) {
+            var sign = deg < 0 ? "-" : "+";
+            var totalSec = (int)Math.Round(Math.Abs(deg) * 3600);
+            return $"{sign}{totalSec / 3600:00}° {totalSec / 60 % 60:00}′ {totalSec % 60:00}″";
         }
 
         [JsonIgnore] public string SentAtLocal => SentAt == default ? "" : SentAt.ToLocalTime().ToString("MMM d, h:mm tt");
@@ -98,7 +129,9 @@ namespace PlanAstro.NINA {
     }
 
     internal class QueueResponse {
-        [JsonPropertyName("targets")] public List<SentTarget> Targets { get; set; } = new();
+        public List<SentTarget> Targets { get; } = new();
+        /// <summary>Targets that could not be read: (id, reason). They are acknowledged as failed so PlanAstro can show it.</summary>
+        public List<(string Id, string Reason)> Rejected { get; } = new();
     }
 
     internal class AckRequest {

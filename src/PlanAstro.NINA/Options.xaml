@@ -66,10 +66,7 @@
             </Grid>
 
             <!-- Inbox -->
-            <DockPanel Margin="0,18,0,6" LastChildFill="False">
-                <TextBlock DockPanel.Dock="Left" FontSize="16" FontWeight="SemiBold" Text="PlanAstro inbox" />
-                <Button DockPanel.Dock="Right" Width="160" Command="{Binding AddTestTargetCommand}" Content="Add test target (M31)" />
-            </DockPanel>
+            <TextBlock Margin="0,18,0,6" FontSize="16" FontWeight="SemiBold" Text="PlanAstro inbox" />
             <TextBlock Margin="0,0,0,6" Opacity="0.7" Text="Targets sent from PlanAstro, newest first." />
 
             <ItemsControl ItemsSource="{Binding Inbox}">
@@ -88,7 +85,7 @@
                                 <StackPanel>
                                     <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
                                     <TextBlock Opacity="0.8" Text="{Binding Summary}" TextWrapping="Wrap" />
-                                    <TextBlock Opacity="0.8" Text="{Binding Rig.Telescope}" />
+                                    <TextBlock Opacity="0.8" Text="{Binding RigSummary}" TextWrapping="Wrap" />
                                     <TextBlock Opacity="0.8" Text="{Binding Note}" TextWrapping="Wrap" />
                                     <TextBlock Opacity="0.6" Text="{Binding SentAtLocal}" />
                                 </StackPanel>

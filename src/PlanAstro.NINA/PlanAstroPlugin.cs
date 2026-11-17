@@ -52,7 +52,6 @@ namespace PlanAstro.NINA {
             CheckNowCommand = new RelayCommand(async _ => await CheckQueue(), _ => IsPaired && !Busy);
             OpenCommand = new RelayCommand(async p => await OpenInFraming(p as SentTarget), p => p is SentTarget);
             DismissCommand = new RelayCommand(p => Dismiss(p as SentTarget), p => p is SentTarget);
-            AddTestTargetCommand = new RelayCommand(_ => AddTestTarget());
 
             Status = IsPaired ? $"Connected to {settings.Account}" : "Not connected";
             _ = Task.Run(() => PollLoop(stop.Token));
@@ -110,7 +109,6 @@ namespace PlanAstro.NINA {
         public ICommand CheckNowCommand { get; }
         public ICommand OpenCommand { get; }
         public ICommand DismissCommand { get; }
-        public ICommand AddTestTargetCommand { get; }
 
         // ---------- pairing ----------
 
@@ -167,6 +165,10 @@ namespace PlanAstro.NINA {
             if (!IsPaired) return;
             try {
                 var queue = await client.GetQueue(stop.Token);
+                foreach (var (id, reason) in queue.Rejected) {
+                    try { await client.Ack(id, "failed", reason, stop.Token); } catch (Exception ex) { Log.Error("Failure acknowledgement failed", ex); }
+                    Notification.ShowWarning("PlanAstro: a target arrived in a format this plugin version can't read. Update the plugin, then send it again.");
+                }
                 foreach (var target in queue.Targets.Where(t => t != null && !string.IsNullOrEmpty(t.Id))) {
                     if (target.Version > 1) Log.Info($"Target {target.Id} uses format v{target.Version}; reading the fields this version knows");
                     var isNew = !Inbox.Any(t => t.Id == target.Id);
@@ -175,7 +177,6 @@ namespace PlanAstro.NINA {
                         SaveInbox();
                         Notification.ShowInformation($"PlanAstro: {target.Name} arrived");
                     }
-                    await client.Ack(target.Id, "delivered", null, stop.Token);
                     if (isNew && settings.OnArrival == ArrivalAction.OpenInFraming) await OpenInFraming(target);
                 }
                 Status = $"Connected to {settings.Account} · checked {DateTime.Now:h:mm tt}";
@@ -389,20 +390,6 @@ namespace PlanAstro.NINA {
             if (target == null) return;
             Inbox.Remove(target);
             SaveInbox();
-        }
-
-        /// <summary>Adds M31 locally so the Framing Assistant hand-off can be tested before pairing.</summary>
-        private void AddTestTarget() {
-            var test = new SentTarget {
-                Id = null,
-                Name = "M31 Andromeda Galaxy (test)",
-                Version = 2, Ra = 10.6847, Dec = 41.2690, Rotation = 325,
-                Mosaic = new Mosaic { Columns = 2, Rows = 1, OverlapPercent = 15 },
-                Rig = new Rig { Telescope = "Evostar 80ED + 0.8× reducer (test)", Reducer = 0.8, FocalLengthMm = 480, Camera = "ASI2600MC Pro (test)", PixelSizeUm = 3.76, WidthPx = 6248, HeightPx = 4176 },
-                Note = "Local test target; not from PlanAstro",
-                SentAt = DateTimeOffset.Now
-            };
-            Inbox.Insert(0, test);
         }
 
         private void SaveInbox() {

@@ -2,9 +2,9 @@
 
 One-tap handoff of framed targets from [PlanAstro](https://planastro.com) to [N.I.N.A.](https://nighttime-imaging.eu)
 
-Plan and frame a target in PlanAstro on your phone or computer, tap **Send to NINA**, and it arrives in this plugin's inbox inside NINA, ready to open in the Framing Assistant.
+Plan and frame a target in PlanAstro on your phone or computer, tap **Send framing to N.I.N.A.**, and it arrives in this plugin's inbox inside NINA, ready to open in the Framing Assistant.
 
-> **Status: first version (0.1), in testing.** The PlanAstro side (Connect NINA, Send to NINA) is being built in parallel; until it is live, use **Add test target (M31)** to try the Framing Assistant handoff.
+> **Status: 1.0.** Install it from NINA's plugin list (*Plugins > Available > PlanAstro for NINA*) or from the [releases page](https://github.com/PlanAstro/nina-plugin-planastro/releases). Support: open an issue here or email support.planastro@gmail.com.
 
 ## What it does
 
@@ -26,10 +26,10 @@ You need Windows 10 or 11, N.I.N.A. 3.1 or later, the [.NET 8 SDK](https://dotne
 2. Clone this repository and open `src/PlanAstro.NINA/PlanAstro.NINA.csproj` in Visual Studio.
 3. Build (Debug or Release). The build copies the plugin into `%LOCALAPPDATA%\NINA\Plugins\3.0.0\PlanAstro for NINA\`.
 4. Start N.I.N.A. and open *Plugins > Installed > PlanAstro for NINA*.
-5. Click **Add test target (M31)**, then **Open in Framing Assistant**. Check that:
-   - the Framing Assistant opens centred on M31 and loads the sky image by itself (if NINA has no telescope focal length set, the plugin uses the rig sent from PlanAstro);
-   - the rotation reads 325°, the same number as in PlanAstro, with the frame along the galaxy's long axis;
-   - the mosaic shows 2 × 1 panels with 15% overlap.
+5. In PlanAstro, open *Menu > Connect NINA > Get pairing code*, type the code on the plugin's page and press **Pair**.
+6. Frame a target in PlanAstro (for example M31 with a 2×1 mosaic) and tap **Send framing to N.I.N.A.** Within one check interval it should appear in the inbox and open in the Framing Assistant with:
+   - the same centre, rotation number, mosaic and overlap as in PlanAstro;
+   - your rig's focal length, pixel size and sensor size under Camera Parameters (when *Frame with PlanAstro My Astro Rig* is on).
 
 If the build fails or a step doesn't behave as described, copy the error (or the lines containing `[PlanAstro]` from NINA's log in `%LOCALAPPDATA%\NINA\Logs`) into an issue or the PlanAstro chat.
 
