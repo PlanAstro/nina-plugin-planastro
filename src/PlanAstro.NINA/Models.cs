@@ -29,12 +29,14 @@ namespace PlanAstro.NINA {
             Version >= 2 ? ((Rotation % 360) + 360) % 360 : ((360 - Rotation) % 360 + 360) % 360;
 
         [JsonPropertyName("mosaic")] public Mosaic Mosaic { get; set; }
-        [JsonPropertyName("panels")] public List<Panel> Panels { get; set; }
+        /// <summary>Panel count or panel list; informational only (NINA computes the panels), so any shape is accepted.</summary>
+        [JsonPropertyName("panels")] public System.Text.Json.JsonElement? Panels { get; set; }
         [JsonPropertyName("fov")] public FieldOfView Fov { get; set; }
         /// <summary>Optional: the sky image width shown in PlanAstro (Survey Zoom), in degrees. NINA's Field of view uses it, widened if the mosaic wouldn't fit.</summary>
         [JsonPropertyName("surveyFovDeg")] public double? SurveyFovDeg { get; set; }
         [JsonPropertyName("rig")] public Rig Rig { get; set; }
-        [JsonPropertyName("filters")] public List<FilterPlan> Filters { get; set; }
+        /// <summary>Optional filter plan; not used yet, so any shape is accepted.</summary>
+        [JsonPropertyName("filters")] public System.Text.Json.JsonElement? Filters { get; set; }
         [JsonPropertyName("note")] public string Note { get; set; }
         [JsonPropertyName("sentAt")] public DateTimeOffset SentAt { get; set; }
 
@@ -98,7 +100,9 @@ namespace PlanAstro.NINA {
     }
 
     internal class QueueResponse {
-        [JsonPropertyName("targets")] public List<SentTarget> Targets { get; set; } = new();
+        public List<SentTarget> Targets { get; } = new();
+        /// <summary>Targets that could not be read: (id, reason). They are acknowledged as failed so PlanAstro can show it.</summary>
+        public List<(string Id, string Reason)> Rejected { get; } = new();
     }
 
     internal class AckRequest {

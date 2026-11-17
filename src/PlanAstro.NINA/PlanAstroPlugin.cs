@@ -167,6 +167,10 @@ namespace PlanAstro.NINA {
             if (!IsPaired) return;
             try {
                 var queue = await client.GetQueue(stop.Token);
+                foreach (var (id, reason) in queue.Rejected) {
+                    try { await client.Ack(id, "failed", reason, stop.Token); } catch (Exception ex) { Log.Error("Failure acknowledgement failed", ex); }
+                    Notification.ShowWarning("PlanAstro: a target arrived in a format this plugin version can't read. Update the plugin, then send it again.");
+                }
                 foreach (var target in queue.Targets.Where(t => t != null && !string.IsNullOrEmpty(t.Id))) {
                     if (target.Version > 1) Log.Info($"Target {target.Id} uses format v{target.Version}; reading the fields this version knows");
                     var isNew = !Inbox.Any(t => t.Id == target.Id);
@@ -175,7 +179,6 @@ namespace PlanAstro.NINA {
                         SaveInbox();
                         Notification.ShowInformation($"PlanAstro: {target.Name} arrived");
                     }
-                    await client.Ack(target.Id, "delivered", null, stop.Token);
                     if (isNew && settings.OnArrival == ArrivalAction.OpenInFraming) await OpenInFraming(target);
                 }
                 Status = $"Connected to {settings.Account} · checked {DateTime.Now:h:mm tt}";
