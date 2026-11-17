@@ -401,7 +401,8 @@ namespace PlanAstro.NINA {
                 Name = "M31 Andromeda Galaxy (test)",
                 Version = 2, Ra = 10.6847, Dec = 41.2690, Rotation = 325,
                 Mosaic = new Mosaic { Columns = 2, Rows = 1, OverlapPercent = 15 },
-                Rig = new Rig { Telescope = "Evostar 80ED + 0.8× reducer (test)", Reducer = 0.8, FocalLengthMm = 480, Camera = "ASI2600MC Pro (test)", PixelSizeUm = 3.76, WidthPx = 6248, HeightPx = 4176 },
+                Fov = new FieldOfView { WidthDeg = 2.80, HeightDeg = 1.87 },
+                Rig = new Rig { Telescope = "Evostar 80ED", Reducer = 0.8, FocalLengthMm = 480, Camera = "ASI2600MC Pro", PixelSizeUm = 3.76, WidthPx = 6248, HeightPx = 4176 },
                 Note = "Local test target; not from PlanAstro",
                 SentAt = DateTimeOffset.Now
             };
