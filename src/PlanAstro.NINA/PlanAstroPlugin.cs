@@ -21,7 +21,7 @@ using System.Windows.Input;
 namespace PlanAstro.NINA {
 
     /// <summary>
-    /// PlanAstro for NINA. Pairs with a PlanAstro account, collects targets sent from PlanAstro
+    /// PlanAstro plugin for N.I.N.A. Pairs with a PlanAstro account, collects targets sent from PlanAstro
     /// and opens them in NINA's Framing Assistant.
     /// The settings page (Options.xaml) binds directly to this class.
     /// </summary>

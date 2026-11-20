@@ -5,15 +5,15 @@ using System.Runtime.InteropServices;
 // [Guid] is the plugin's permanent identifier: never change it.
 [assembly: Guid("fd400fc7-093c-4f75-94f4-fc6fda5683ad")]
 
-[assembly: AssemblyTitle("PlanAstro for NINA")]
+[assembly: AssemblyTitle("PlanAstro")]
 [assembly: AssemblyDescription("Send framed targets from PlanAstro to N.I.N.A.")]
 [assembly: AssemblyCompany("PlanAstro")]
-[assembly: AssemblyProduct("PlanAstro for NINA")]
+[assembly: AssemblyProduct("PlanAstro")]
 [assembly: AssemblyCopyright("Copyright © 2026 PlanAstro")]
 
 // Major.Minor.Patch.Build
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.0.1")]
+[assembly: AssemblyFileVersion("1.0.0.1")]
 
 [assembly: AssemblyMetadata("MinimumApplicationVersion", "3.1.2.9001")]
 [assembly: AssemblyMetadata("License", "MIT")]
@@ -25,7 +25,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyMetadata("FeaturedImageURL", "")]
 [assembly: AssemblyMetadata("ScreenshotURL", "")]
 [assembly: AssemblyMetadata("AltScreenshotURL", "")]
-[assembly: AssemblyMetadata("LongDescription", @"Plan and frame a target in PlanAstro on your phone or computer, tap Send to NINA, and it arrives here.
+[assembly: AssemblyMetadata("LongDescription", @"Plan and frame a target in PlanAstro on your phone or computer, tap Send Target to N.I.N.A. or Send framing to N.I.N.A., and it arrives here.
 
 * Pair once with a 6-character code from PlanAstro (Menu > Connect NINA).
 * Sent targets appear in the PlanAstro inbox on this plugin's page, with coordinates, rotation, mosaic and rig.

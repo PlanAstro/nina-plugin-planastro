@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0.1 (2026-11-19)
+
+- Renamed the plugin from "PlanAstro for NINA" to "PlanAstro". Same plugin and identifier; your pairing and settings carry over.
+- Description now names the PlanAstro buttons: Send Target to N.I.N.A. and Send framing to N.I.N.A.
+- If you installed 1.0.0.0 by hand, delete the old `PlanAstro for NINA` folder in `%LOCALAPPDATA%\NINA\Plugins\3.0.0\` so NINA doesn't load two copies.
+
 ## 1.0.0.0 (2026-11-17)
 
 First public release, submitted to NINA's plugin list.
