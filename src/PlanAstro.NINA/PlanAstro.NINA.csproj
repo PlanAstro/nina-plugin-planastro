@@ -10,7 +10,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <!-- NINA loads plugins from this folder; the post-build step copies the build here for local testing. -->
-    <NinaPluginFolder>$(LOCALAPPDATA)\NINA\Plugins\3.0.0\PlanAstro for NINA</NinaPluginFolder>
+    <NinaPluginFolder>$(LOCALAPPDATA)\NINA\Plugins\3.0.0\PlanAstro</NinaPluginFolder>
   </PropertyGroup>
 
   <ItemGroup>

@@ -4,7 +4,7 @@ One-tap handoff of framed targets from [PlanAstro](https://planastro.com) to [N.
 
 Plan and frame a target in PlanAstro on your phone or computer, tap **Send framing to N.I.N.A.**, and it arrives in this plugin's inbox inside NINA, ready to open in the Framing Assistant.
 
-> **Status: 1.0.** Install it from NINA's plugin list (*Plugins > Available > PlanAstro for NINA*) or from the [releases page](https://github.com/PlanAstro/nina-plugin-planastro/releases). Support: open an issue here or email support.planastro@gmail.com.
+> **Status: 1.0.** Install it from NINA's plugin list (*Plugins > Available > PlanAstro*) or from the [releases page](https://github.com/PlanAstro/nina-plugin-planastro/releases). Support: open an issue here or email support.planastro@gmail.com.
 
 ## What it does
 
@@ -24,8 +24,8 @@ You need Windows 10 or 11, N.I.N.A. 3.1 or later, the [.NET 8 SDK](https://dotne
 
 1. Close N.I.N.A.
 2. Clone this repository and open `src/PlanAstro.NINA/PlanAstro.NINA.csproj` in Visual Studio.
-3. Build (Debug or Release). The build copies the plugin into `%LOCALAPPDATA%\NINA\Plugins\3.0.0\PlanAstro for NINA\`.
-4. Start N.I.N.A. and open *Plugins > Installed > PlanAstro for NINA*.
+3. Build (Debug or Release). The build copies the plugin into `%LOCALAPPDATA%\NINA\Plugins\3.0.0\PlanAstro\`.
+4. Start N.I.N.A. and open *Plugins > Installed > PlanAstro*.
 5. In PlanAstro, open *Menu > Connect NINA > Get pairing code*, type the code on the plugin's page and press **Pair**.
 6. Frame a target in PlanAstro (for example M31 with a 2×1 mosaic) and tap **Send framing to N.I.N.A.** Within one check interval it should appear in the inbox and open in the Framing Assistant with:
    - the same centre, rotation number, mosaic and overlap as in PlanAstro;

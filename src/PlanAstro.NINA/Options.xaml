@@ -6,7 +6,7 @@
     <BooleanToVisibilityConverter x:Key="PlanAstroBoolToVisibility" />
 
     <!-- NINA shows this template on the plugin's page. The key must be the plugin name followed by _Options. -->
-    <DataTemplate x:Key="PlanAstro for NINA_Options">
+    <DataTemplate x:Key="PlanAstro_Options">
         <StackPanel Margin="0,0,0,12" Orientation="Vertical">
 
             <!-- Connection -->
